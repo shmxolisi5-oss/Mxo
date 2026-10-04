@@ -1,4 +1,165 @@
-<button type="button" data-handler="showReset" style="display: block; width: 100%; text-align: center; font-size: 1.2rem;"> Forgot password? </button>
 
-    Forgot password?
-</button>
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const RESEND_API = "https://api.resend.com/emails";
+
+Deno.serve(async (req) => {
+  try {
+    if (req.method !== "POST") {
+      return new Response("Method not allowed", { status: 405 });
+    }
+
+    const body = await req.json();
+    const bookingId = body.booking_id;
+
+    if (!bookingId) {
+      return new Response(
+        JSON.stringify({ error: "booking_id is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Supabase server credentials
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Get the booking
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        slot_date,
+        slot_time,
+        style,
+        price,
+        status,
+        salon_id,
+        profile_id
+      `)
+      .eq("id", bookingId)
+      .single();
+
+    if (error || !booking) {
+      console.error(error);
+
+      return new Response(
+        JSON.stringify({ error: "Booking not found" }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Get salon information
+    const { data: salon } = await supabase
+      .from("salons")
+      .select("name")
+      .eq("id", booking.salon_id)
+      .single();
+
+    // Get customer information
+    const { data: customer } = await supabase
+      .from("profiles")
+      .select("full_name,email")
+      .eq("id", booking.profile_id)
+      .single();
+
+    const salonName = salon?.name ?? "Hairbook Salon";
+    const customerName = customer?.full_name ?? "Customer";
+    const customerEmail = customer?.email ?? "";
+
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+
+    if (!resendKey) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    // Send email through Resend
+    const resendResponse = await fetch(RESEND_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${resendKey}`,
+      },
+      body: JSON.stringify({
+        from: "Hairbook <bookings@yourdomain.com>",
+        to: ["YOUR_EMAIL@example.com"],
+        subject: `New Hairbook booking - ${salonName}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
+            <h2>New Hairbook Booking</h2>
+
+            <p>A new booking has been made through Hairbook.</p>
+
+            <hr>
+
+            <p><strong>Customer:</strong> ${customerName}</p>
+            <p><strong>Email:</strong> ${customerEmail}</p>
+            <p><strong>Salon:</strong> ${salonName}</p>
+            <p><strong>Hairstyle:</strong> ${booking.style ?? "Not specified"}</p>
+            <p><strong>Date:</strong> ${booking.slot_date}</p>
+            <p><strong>Time:</strong> ${booking.slot_time}</p>
+            <p><strong>Price:</strong> R${booking.price ?? "0"}</p>
+            <p><strong>Status:</strong> ${booking.status ?? "Pending"}</p>
+            <p><strong>Booking ID:</strong> ${booking.id}</p>
+
+            <hr>
+
+            <p>
+              Please log in to the Hairbook admin dashboard
+              to manage this booking.
+            </p>
+          </div>
+        `,
+      }),
+    });
+
+    const resendResult = await resendResponse.json();
+
+    if (!resendResponse.ok) {
+      console.error("Resend error:", resendResult);
+
+      return new Response(
+        JSON.stringify({
+          error: "Email could not be sent",
+          details: resendResult,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        booking_id: bookingId,
+        email: resendResult,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+});
