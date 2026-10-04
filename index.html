@@ -1,4 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hairbook</title>
+<!-- Optional: add CSS here. The fully styled design is in hairbook-supabase/index.html. -->
+<style>
+  /* Minimal rules so the screens stack sensibly. Replace with your own design. */
+  body{font-family:system-ui,sans-serif;margin:0;padding:16px;max-width:480px}
+  button{font:inherit;padding:10px 14px;margin:4px 4px 4px 0}
+  .opt,.chip{display:block;margin:6px 0}
+</style>
+<!-- Supabase settings. Leave empty to run in demo mode (no database). -->
+<script>window.HB_CONFIG={SUPABASE_URL:"",SUPABASE_ANON_KEY:""};</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+</head>
+<body>
 
+<!-- The screens the JavaScript looks for. Keep these ids and classes. -->
+<main id="home">
+  <h1>Hairbook</h1>
+  <p>No more standing queues. Book your hairstyle in time.</p>
+  <button id="book">Book your hairstyle</button>
+  <div class="auth"><button type="button">Log in</button><button type="button">Create an account</button></div>
+  <p class="fine">Demo preview: bookings are examples only and are not sent to salons.</p>
+  <p id="acct" hidden></p>
+  <button id="adminbtn" type="button" hidden>Admin dashboard</button>
+</main>
+
+<section id="choose" hidden>
+  <button id="back">&larr; Back</button>
+  <h2>Who is the style for?</h2>
+  <button class="choice" data-v="Women">Women</button>
+  <button class="choice" data-v="Men">Men</button>
+</section>
+
+<section id="flow" hidden></section>
+<section id="admin" hidden></section>
+<section id="auth" hidden></section>
+
+<!-- Salon data used in demo mode. In Supabase mode the salons come from the database instead. -->
+<script type="application/json" id="hb-data">{"salons": []}</script>
+
+<script>
 /* Hairbook app logic (extracted from hairbook-supabase/index.html, unchanged).
    In the app this runs inline after the #hb-data JSON block. Fill in window.HB_CONFIG to use Supabase. */
 var ORIG="<!DOCTYPE html>\n"+document.documentElement.outerHTML;
@@ -40,170 +84,6 @@ function hdr(step){var n=ORDER.indexOf(step)+1;return '<button class="back" data
 function go(step,back){if(!back)stack.push(step);
  var h='',f='';
  if(step=='style'){h=hdr(step)+'<div class="body"><p class="sub">'+S.g+' styles. Tap one to continue.</p><div class="grid2">'+
-  STY[S.g].map(function(t,i){return '<button class="opt'+(S.style&&S.style[0]==t[0]?' on':'')+'" data-a="style" data-i="'+i+'">'+(t[4]?'<img class="art" alt="" style="object-fit:cover" src="'+esc(t[4])+'">':art(i,t[1],t[3]))+t[0]+'<small>from '+R(t[2])+(t[4]?'':' Â· illustration')+'</small></button>'}).join('')+'</div></div>'}
+  STY[S.g].map(function(t,i){return '<button class="opt'+(S.style&&S.style[0]==t[0]?' on':'')+'" data-a="style" data-i="'+i+'">'+(t[4]?'<img class="art" alt="" style="object-fit:cover" src="'+esc(t[4])+'">':art(i,t[1],t[3]))+t[0]+'<small>from '+R(t[2])+(t[4]?'':' · illustration')+'</small></button>'}).join('')+'</div></div>'}
  if(step=='salon'){h=hdr(step)+'<div class="body"><p class="sub">Salons for '+esc(S.style[0])+'.</p><p class="demo">'+(LIVE?'Booking requests are confirmed by the salon separately. No payment is taken.':'Salon details are entered by Hairbook and may be placeholders. No booking reaches any salon yet, and no payment is taken.')+'</p>'+(SAL.length?SAL.map(function(a,i){
-  return '<div class="scard"><div class="ban" style="--h:'+(+a.h||300)+'">'+(a.photos[0]?'<img class="phimg" alt="" src="'+esc(a.photos[0])+'">':'')+'<b>'+esc(a.name.charAt(0))+'</b><span>'+esc(a.status)+(a.photos[0]?'':' Â· placeholder image')+'</span></div><div class="sc"><h3>'+esc(a.name)+'</h3><p class="loc">ðŸ“ '+esc(loc(a))+'</p>'+(a.verified?'':'<p class="loc">Details not yet verified.</p>')+cbtn(a)+'<div class="tags">'+a.services.map(function(x){return '<span>'+esc(x.n)+' R'+esc(x.p)+'</span>'}).join('')+'</div><p class="from">'+esc(S.style[0])+' about '+R(prc(a))+'</p>'+(LIVE&&!a.bookingOn?'<button class="cta" disabled>Booking not open yet</button>':'<button class="cta" data-a="salon" data-i="'+i+'">Select salon</button>')+'</div></div>'}).join(''):'<p class="sub">No salons added yet.</p>')+'</div>'}
- if(step=='when'){h=hdr(step)+'<div class="body"><p class="lbl">Date</p><div class="chips">'+days().map(function(d){return '<button class="chip'+(S.date==d?' on':'')+'" data-a="date" data-v="'+d+'">'+d+'</button>'}).join('')+
-  '</div><p class="lbl">Time</p><div class="chips">'+TIMES.map(function(t){return '<button class="chip'+(S.time==t?' on':'')+'" data-a="time" data-v="'+t+'">'+t+'</button>'}).join('')+'</div></div><div class="foot"><button class="cta" data-a="next" data-n="summary"'+(S.date&&S.time?'':' disabled')+'>Review booking</button></div>'}
- if(step=='summary'){h=hdr(step)+'<div class="body">'+[['Client',S.g],['Hairstyle',S.style[0]],['Salon',esc(S.salon.name)],['Location',esc(loc(S.salon))],['Salon status',esc(S.salon.status)],['Date',S.date],['Time',S.time]].map(function(r){return '<div class="row"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>'}).join('')+
-  '<div class="row tot"><span>Estimated price (demo)</span><b>'+R(price())+'</b></div></div><div class="foot"><button class="cta" data-a="done">'+(LIVE?'Request booking':'Save demo booking')+'</button><p class="err" id="bmsg" hidden></p></div>'}
- if(step=='done'){S.ref=LIVE?S.ref:'DEMO-'+Math.random().toString(36).slice(2,6).toUpperCase();
-  h='<div class="body" style="text-align:center;padding-top:30px"><div class="ok">ðŸ“</div><h2>'+(LIVE?'Booking request sent':'Demo booking preview')+'</h2><p class="sub">Reference <b>'+S.ref+'</b></p><div style="text-align:left">'+
-  [['Salon (demo)',esc(S.salon.name)],['Location',esc(loc(S.salon))],['Hairstyle',S.style[0]],['When',S.date+', '+S.time],['Estimated price',R(price())]].map(function(r){return '<div class="row"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>'}).join('')+
-  '</div><p class="demo">'+(LIVE?'Your request is saved with status requested. The salon has not confirmed it yet, and no payment was taken.':'This is not a real booking. The salon has not been told, no appointment is reserved and no payment was taken.')+'</p></div><div class="foot"><button class="cta" data-a="again">Book another style</button></div>'}
- flow.innerHTML=h;if(cur!==flow)show(flow,cur);else{flow.classList.remove('in');void flow.offsetWidth;flow.classList.add('in')}}
-document.getElementById('book').onclick=function(){S={};stack=[];show(choose,home)};
-document.getElementById('back').onclick=function(){show(home,choose)};
-document.querySelectorAll('.choice').forEach(function(c){c.onclick=function(){S={g:c.dataset.v};stack=[];go('style')}});
-flow.onclick=function(e){var b=e.target.closest('[data-a]');if(!b)return;var a=b.dataset.a,i=b.dataset.i;
- if(a=='back'){stack.pop();if(!stack.length||stack[stack.length-1]=='done'){show(choose,flow);stack=[]}else go(stack[stack.length-1],true)}
- else if(a=='style'){S.style=STY[S.g][i];go('salon')}
- else if(a=='salon'){S.salon=SAL[i];go('when')}
- else if(a=='date'||a=='time'){S[a]=b.dataset.v;if(a=='date')S.iso=isoOf(b.dataset.v);go('when',true)}
- else if(a=='next'){go(b.dataset.n)}
- else if(a=='pm'){S.pay=b.dataset.v;go('pay',true)}
- else if(a=='done'){if(LIVE)bookLive();else go('done')}
- else if(a=='again'){S={};stack=[];show(home,flow)}};
-var A={v:'list',i:0},dirty=false,ART=null,admin=document.getElementById('admin'),STAT=['Demo only','Not yet partnered','Onboarding','Partnered'];
-if(window.claude&&claude.use){
- claude.use('user').then(function(u){if(u&&((u.isOwner&&u.isOwner())||(u.canEdit&&u.canEdit())))document.getElementById('adminbtn').hidden=false}).catch(function(){});
- claude.use('artifact').then(function(a){ART=a}).catch(function(){})}
-function amsg(t){var e=document.getElementById('amsg');if(e)e.textContent=t}
-function adm(){var h='';
- if(A.v=='list'){h='<button class="back" data-x="exit">&#8592; Back to app</button><h2>Admin</h2><p class="sub">Customers see what you save here. '+(LIVE?'Booking requests are stored. No payments are taken.':'Bookings and payments are not live.')+'</p><div class="body">'+
-  (SAL.map(function(a,i){return '<div class="arow"><div><b>'+esc(a.name)+'</b><br><small>'+esc(a.area)+' Â· '+esc(a.status)+' Â· contact '+(a.contactOn?'on':'off')+(a.verified?' Â· verified':' Â· unverified')+'</small></div><button class="chip" data-x="edit" data-i="'+i+'">Edit</button></div>'}).join('')||'<p class="sub">No salons yet.</p>')+
-  '</div><div class="foot"><div class="row2"><button class="chip" data-x="add">+ Add salon</button>'+(LIVE?'<button class="chip" data-x="sty">Hairstyles</button><button class="chip" data-x="bk">Bookings</button>':'')+'<label class="chip">Import JSON (add)<input type="file" accept=".json,application/json" data-x="imp" data-m="add" hidden></label><label class="chip">Import JSON (replace all)<input type="file" accept=".json,application/json" data-x="imp" data-m="rep" hidden></label></div><button class="cta" data-x="pub" style="margin-top:10px"'+(dirty&&(ART||LIVE)?'':' disabled')+'>Publish changes</button><p class="amsg" id="amsg">'+((ART||LIVE)?(dirty?'Unpublished changes. Customers will not see them until you publish.':''):'Publishing is unavailable in this view.')+'</p></div>'}
- else if(A.v=='sty'){h=styView()}
- else{var a=SAL[A.i];h='<button class="back" data-x="done">&#8592; Done</button><h2>'+esc(a.name||'New salon')+'</h2><div class="body">'+
-  '<label class="fld">Salon name<input data-f="name" value="'+esc(a.name)+'"></label>'+
-  '<label class="fld">Status label<select data-f="status">'+STAT.map(function(x){return '<option'+(x==a.status?' selected':'')+'>'+x+'</option>'}).join('')+'</select></label>'+
-  '<label class="fld">Suburb<input data-f="area" value="'+esc(a.area)+'"></label>'+
-  '<label class="fld">Street address<input data-f="address" value="'+esc(a.address)+'"></label>'+
-  '<label class="fld">Phone<input data-f="phone" type="tel" value="'+esc(a.phone)+'"></label>'+
-  '<label class="fld">Email<input data-f="email" type="email" value="'+esc(a.email)+'"></label>'+
-  '<label class="fld ck"><input type="checkbox" data-f="contactOn"'+(a.contactOn?' checked':'')+'> Turn on Call and Email buttons for customers</label>'+
-  (LIVE?'<label class="fld ck"><input type="checkbox" data-f="bookingOn"'+(a.bookingOn?' checked':'')+'> Open booking requests for this salon</label>':'<label class="fld ck"><input type="checkbox" disabled> Real bookings: not available yet (no salon notification system)</label>')+
-  '<label class="fld ck"><input type="checkbox" data-f="verified"'+(a.verified?' checked':'')+'> Details verified with the salon</label>'+
-  '<label class="fld">Date verified<input data-f="verifiedOn" type="date" value="'+esc(a.verifiedOn)+'"></label>'+
-  '<label class="fld">Price level (1 = standard, used to estimate styles the salon has not priced)<input data-f="f" type="number" step="0.05" min="0.3" value="'+esc(a.f)+'"></label>'+
-  '<p class="lbl">Services and prices (R)</p>'+a.services.map(function(x,j){return '<div class="srow"><input data-s="n" data-j="'+j+'" value="'+esc(x.n)+'" aria-label="Service name"><input data-s="p" data-j="'+j+'" type="number" min="0" value="'+esc(x.p)+'" aria-label="Price"><button class="chip" data-x="rs" data-j="'+j+'" aria-label="Remove service">&#10005;</button></div>'}).join('')+
-  '<button class="chip" data-x="as">+ Add service</button><p class="lbl">Photos (up to 3)</p><div class="ph">'+a.photos.map(function(u,j){return '<div><img alt="" src="'+esc(u)+'"><button data-x="rp" data-j="'+j+'" aria-label="Remove photo">&#10005;</button></div>'}).join('')+'</div>'+
-  (a.photos.length<3?'<label class="chip" style="display:inline-block">+ Add photo<input type="file" accept="image/*" data-x="up" hidden></label>':'')+
-  '<div class="row2" style="margin-top:22px"><button class="chip danger" data-x="del">Delete salon</button></div></div><div class="foot"><button class="cta" data-x="done">Done</button></div>'}
- admin.innerHTML=h}
-function norm(r){if(!r||typeof r.name!='string'||!r.name.trim())return null;
- var sv=Array.isArray(r.services)?r.services.map(function(x){return {n:String(x&&x.n||'').slice(0,60),p:Math.max(0,+(x&&x.p)||0)}}).filter(function(x){return x.n}):[];
- return {id:newId(),name:r.name.trim().slice(0,80),area:String(r.area||'').slice(0,60),address:String(r.address||'').slice(0,160),phone:String(r.phone||'').slice(0,30),email:String(r.email||'').slice(0,80),
- status:STAT.indexOf(r.status)>-1?r.status:'Not yet partnered',f:(+r.f>0.3&&+r.f<5)?+r.f:1,h:Math.floor(Math.random()*360),services:sv,
- photos:(Array.isArray(r.photos)?r.photos:[]).filter(function(u){return /^data:image\/(jpeg|png|webp);base64,/.test(u)}).slice(0,3),contactOn:false,bookingOn:false,verified:!!r.verified,verifiedOn:String(r.verifiedOn||'').slice(0,10)}}
-function doImport(file,mode){var r=new FileReader();r.onerror=function(){amsg('Could not read that file.')};r.onload=function(){var j;try{j=JSON.parse(r.result)}catch(e){amsg('Import failed: that file is not valid JSON. Nothing was changed.');return}
- var arr=Array.isArray(j)?j:(j&&Array.isArray(j.salons)?j.salons:null);if(!arr){amsg('Import failed: expected a list of salons. Nothing was changed.');return}
- var ok=arr.map(norm).filter(Boolean),bad=arr.length-ok.length;if(!ok.length){amsg('Import failed: no salon had a name. Nothing was changed.');return}
- if(mode=='rep'&&!confirm('Replace all '+SAL.length+' current salons with '+ok.length+' imported?'))return;
- if(mode=='rep'){SAL.forEach(function(x){DEL.push(x.id)})}if(mode=='rep')SAL.splice.apply(SAL,[0,SAL.length].concat(ok));else ok.forEach(function(x){SAL.push(x)});
- dirty=true;A.v='list';adm();amsg(ok.length+' imported, '+bad+' skipped. Contact and booking stay off. Publish to make this live.')};r.readAsText(file)}
-function aopen(){show(admin,cur);A.v='list';adm()}
-document.getElementById('adminbtn').onclick=aopen;
-admin.oninput=function(e){var t=e.target,a=SAL[A.i];if(t.dataset.p){var k=t.dataset.p;OV[k]=OV[k]||{key:k};OV[k].price=t.value===''?null:+t.value;applyOV();dirty=true;return}if(t.dataset.f){a[t.dataset.f]=t.type=='checkbox'?t.checked:(t.type=='number'?+t.value:t.value);dirty=true}
- else if(t.dataset.s){a.services[t.dataset.j][t.dataset.s]=t.dataset.s=='p'?+t.value:t.value;dirty=true}};
-admin.onchange=function(e){var t=e.target;if(t.dataset.x=='usp'&&t.files[0]){var k=t.dataset.k;imgToCanvas(t.files[0],function(c){upPhoto(c,function(u){OV[k]=OV[k]||{key:k};OV[k].photo_url=u;applyOV();dirty=true;adm()},'styles')});t.value='';return}if(t.dataset.x=='imp'&&t.files[0]){doImport(t.files[0],t.dataset.m);t.value='';return}if(t.dataset.x=='up'&&t.files[0]){var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var k=Math.min(1,520/Math.max(im.width,im.height)),c=document.createElement('canvas');
- c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);upPhoto(c,function(u){SAL[A.i].photos.push(u);dirty=true;adm()})};im.src=r.result};r.readAsDataURL(t.files[0])}};
-admin.onclick=function(e){var b=e.target.closest('button[data-x]');if(!b)return;var x=b.dataset.x,j=+b.dataset.j,a=SAL[A.i];
- if(x=='exit'){show(home,admin)}
- else if(x=='sty'){A.v='sty';adm()}
- else if(x=='bk'){openBk()}
- else if(x=='bs'){sb.from('bookings').update({status:b.dataset.s}).eq('id',b.dataset.id).then(openBk)}
- else if(x=='rsp'){var k2=b.dataset.k;OV[k2]=OV[k2]||{key:k2};OV[k2].photo_url=null;applyOV();dirty=true;adm()}
- else if(x=='edit'){A.v='ed';A.i=+b.dataset.i;adm()}
- else if(x=='add'){SAL.push({id:newId(),name:'New salon',area:'',address:'',phone:'',email:'',contactOn:false,bookingOn:false,verified:false,verifiedOn:'',status:'Not yet partnered',f:1,h:Math.floor(Math.random()*360),services:[],photos:[]});dirty=true;A.v='ed';A.i=SAL.length-1;adm()}
- else if(x=='done'){A.v='list';adm()}
- else if(x=='as'){a.services.push({n:'',p:0});dirty=true;adm()}
- else if(x=='rs'){a.services.splice(j,1);dirty=true;adm()}
- else if(x=='rp'){a.photos.splice(j,1);dirty=true;adm()}
- else if(x=='del'){if(confirm('Delete this salon?')){DEL.push(a.id);SAL.splice(A.i,1);dirty=true;A.v='list';adm()}}
- else if(x=='pub'&&LIVE){saveLive(b)}
- else if(x=='pub'&&ART){amsg('Publishingâ€¦');b.disabled=true;var d=JSON.stringify(DATA).replace(/</g,'\\u003c');
-  var html=ORIG.replace(/(<script type="application\/json" id="hb-data">)[\s\S]*?(<\/script>)/,function(m,p,q){return p+d+q});
-  ART.publish(html).then(function(){dirty=false;amsg('Published.')}).catch(function(er){b.disabled=false;amsg(er&&er.code=='conflict'?'Someone else published first. The page will reload with their version.':'Could not publish ('+((er&&er.code)||'error')+').')})}};
-/* ---- Customer account screens (UI only). AUTH is the single connection point:
-   later, replace these three stubs with calls to Supabase / Firebase / Auth0.
-   Today they store nothing, send nothing and always report "not connected". */
-var AUTH={signIn:function(){return Promise.resolve({ok:false,notConnected:true})},signUp:function(){return Promise.resolve({ok:false,notConnected:true})},resetPassword:function(){return Promise.resolve({ok:false,notConnected:true})}};
-var au=document.getElementById('auth'),AV='login',TCH={};
-var MSG={login:'You are not logged in. Log in is not connected yet, and nothing was saved or sent.',signup:'Your account was not created. Accounts are not live yet, and nothing was saved or sent.',forgot:'No email was sent. Password recovery is not connected yet, and nothing was saved.'};
-function fld(id,label,type,ac,extra){var pw=type=='password';return '<div class="fld"><label for="'+id+'">'+label+'</label>'+(pw?'<div class="pw">':'')+'<input id="'+id+'" type="'+type+'" autocomplete="'+ac+'" '+(extra||'')+'>'+(pw?'<button type="button" class="eye" data-u="eye" data-t="'+id+'" aria-label="Show password">Show</button></div>':'')+'<p class="err" id="e-'+id+'" role="alert" hidden></p></div>'}
-function aview(v){AV=v;TCH={};var h='<button class="back" data-u="home">&#8592; Back</button><h2>'+({login:'Welcome back',signup:'Create your account',forgot:'Reset your password'})[v]+'</h2><p class="sub">'+({login:'Log in to manage your Hairbook bookings.',signup:'Join Hairbook to book and manage your hairstyles.',forgot:'Enter your email and we will help you get back in.'})[v]+'</p><div class="body">'+(LIVE?'':'<p class="demo"><span class="tagc">Coming soon</span>Accounts are not live yet. This is the final layout; nothing you type is stored or sent.</p>')+'<div id="af">';
- if(v=='login')h+=fld('a-email','Email','email','email','inputmode="email"')+fld('a-pass','Password','password','current-password')+'<div class="fr"><button type="button" class="link" data-u="forgot">Forgot password?</button></div>';
- if(v=='signup')h+=fld('a-name','Full name','text','name')+fld('a-email','Email','email','email','inputmode="email"')+fld('a-pass','Password','password','new-password','aria-describedby="reqs"')+'<ul class="reqs" id="reqs"><li data-r="len">At least 8 characters</li><li data-r="let">A letter</li><li data-r="num">A number</li></ul>'+fld('a-conf','Confirm password','password','new-password');
- if(v=='forgot')h+=fld('a-email','Email','email','email','inputmode="email"');
- h+='</div><div id="astate" aria-live="polite"></div><button class="cta" id="asub" data-u="submit" style="margin-top:8px">'+({login:'Log in',signup:'Create account',forgot:'Send reset link'})[v]+'</button>';
- if(v=='login')h+='<p class="alt">New to Hairbook? <button class="link" data-u="signup">Create an account</button></p>';
- if(v=='signup')h+='<p class="alt">Already have an account? <button class="link" data-u="login">Log in</button></p>';
- if(v=='forgot')h+='<p class="alt"><button class="link" data-u="login">&#8592; Back to Log in</button></p>';
- au.innerHTML=h+'</div>';if(cur!==au)show(au,cur);else{au.classList.remove('in');void au.offsetWidth;au.classList.add('in')};reqs()}
-function aval(){return (document.getElementById('a-pass')||{}).value||''}
-function reqs(){var v=aval(),m={len:v.length>=8,let:/[A-Za-z]/.test(v),num:/\d/.test(v)};au.querySelectorAll('[data-r]').forEach(function(li){li.classList.toggle('ok',m[li.dataset.r]);li.textContent=(m[li.dataset.r]?'âœ“ ':'â—‹ ')+li.textContent.replace(/^[âœ“â—‹] /,'')});return m.len&&m.let&&m.num}
-function chk(id){var e=document.getElementById(id);if(!e)return '';var v=e.value.trim(),x='';
- if(id=='a-email')x=!v?'Enter your email address.':!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)?'Enter a valid email, like name@example.com.':'';
- if(id=='a-name')x=v.length<2?'Enter your full name.':'';
- if(id=='a-pass')x=!e.value?'Enter your password.':(AV!='login'&&!reqs()?'Password does not meet the requirements.':'');
- if(id=='a-conf')x=!e.value?'Confirm your password.':e.value!==aval()?'Passwords do not match.':'';
- var er=document.getElementById('e-'+id);er.textContent=x;er.hidden=!x;e.classList.toggle('bad',!!x);e.setAttribute('aria-invalid',x?'true':'false');return x}
-au.addEventListener('input',function(e){var id=e.target.id;if(id=='a-pass'){reqs();if(TCH['a-conf'])chk('a-conf')}if(TCH[id])chk(id)});
-au.addEventListener('focusout',function(e){var id=e.target.id;if(id&&id.indexOf('a-')==0&&e.target.value){TCH[id]=1;chk(id)}});
-au.addEventListener('click',function(e){var b=e.target.closest('[data-u]');if(!b)return;var u=b.dataset.u;
- if(u=='home'){show(home,au)}else if(u=='eye'){var i=document.getElementById(b.dataset.t),sh=i.type=='password';i.type=sh?'text':'password';b.textContent=sh?'Hide':'Show';b.setAttribute('aria-label',sh?'Hide password':'Show password')}
- else if(u=='submit'){var ids=({login:['a-email','a-pass'],signup:['a-name','a-email','a-pass','a-conf'],forgot:['a-email'],reset:['a-pass','a-conf']})[AV],bad=null;ids.forEach(function(id){TCH[id]=1;if(chk(id)&&!bad)bad=id});
-  if(bad){document.getElementById(bad).focus();return}
-  var call=({login:'signIn',signup:'signUp',forgot:'resetPassword',reset:'updatePassword'})[AV],vals=LIVE?{name:vv('a-name').trim(),email:vv('a-email').trim(),password:vv('a-pass')}:undefined;if(LIVE)document.getElementById('asub').disabled=true;
-  AUTH[call](vals).then(function(r){if(LIVE){document.getElementById('asub').disabled=false;ids.forEach(function(id){var x=document.getElementById(id);if(x.type=='password')x.value=''});if(r&&r.ok)afterAuth(r);else document.getElementById('astate').innerHTML='<p class="err">'+esc((r&&r.error)||'Something went wrong. Try again.')+'</p>';return}if(r&&r.ok)return;ids.forEach(function(id){var x=document.getElementById(id);if(x.type!='email'&&x.type!='text')x.value=''});
-   document.getElementById('astate').innerHTML='<p class="demo"><span class="tagc">Coming soon</span>'+MSG[AV]+'</p>';var s=document.getElementById('asub');s.disabled=true;s.textContent='Coming soon'})}
- else aview(u)});
-var ab=document.querySelectorAll('#home .auth button');if(ab[0])ab[0].onclick=function(){aview('login')};if(ab[1])ab[1].onclick=function(){aview('signup')};
-function vv(id){var e=document.getElementById(id);return e?e.value:''}
-function newId(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'s'+Date.now()+Math.random().toString(36).slice(2,6)}
-function isoOf(l){var d=new Date();for(var i=0;i<7;i++){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()+i);if(x.toLocaleDateString('en-ZA',{weekday:'short',day:'numeric',month:'short'})==l)return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}return null}
-var OV={},USR=null,DEL=[],PEND=false;
-function applyOV(){Object.keys(STY).forEach(function(g){STY[g].forEach(function(t){var o=OV[g+':'+t[0]];if(t[5]==null)t[5]=t[2];t[4]=(o&&o.photo_url)||null;t[2]=(o&&o.price!=null)?o.price:t[5]})})}
-function imgToCanvas(file,cb){var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var k=Math.min(1,520/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c)};im.src=r.result};r.readAsDataURL(file)}
-function upPhoto(c,cb,folder){if(!LIVE){cb(c.toDataURL('image/jpeg',.72));return}
- c.toBlob(function(bl){var p=(folder||'salons')+'/'+newId()+'.jpg';sb.storage.from('photos').upload(p,bl,{contentType:'image/jpeg'}).then(function(r){if(r.error){amsg('Photo upload failed: '+r.error.message);return}cb(sb.storage.from('photos').getPublicUrl(p).data.publicUrl)})},'image/jpeg',.72)}
-function afterAuth(r){var m=({signup:r.confirm?'Check your email to confirm your account, then log in.':null,forgot:'If an account exists for that email, a reset link is on its way.'})[AV];
- if(m){document.getElementById('astate').innerHTML='<p class="demo">'+m+'</p>';return}
- if(PEND){PEND=false;go('summary')}else show(home,au)}
-function showReset(){aview('signup');AV='reset';au.querySelector('h2').textContent='Set a new password';['a-name','a-email'].forEach(function(id){document.getElementById(id).closest('.fld').remove()});document.getElementById('asub').textContent='Set new password';var al=au.querySelector('.alt');if(al)al.remove()}
-function styView(){var rows=['Women','Men'].map(function(g){return '<p class="lbl">'+g+'</p>'+STY[g].map(function(t){var k=g+':'+t[0];return '<div class="arow"><div style="display:flex;gap:10px;align-items:center;min-width:0">'+(t[4]?'<img alt="" src="'+esc(t[4])+'" style="width:44px;height:44px;border-radius:10px;object-fit:cover">':'<div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.1)"></div>')+'<b>'+esc(t[0])+'</b></div><div class="row2" style="flex-wrap:nowrap;align-items:center"><input data-p="'+esc(k)+'" type="number" min="0" value="'+t[2]+'" aria-label="Starting price" style="width:76px;padding:10px;border-radius:10px;border:1px solid rgba(255,227,232,.28);background:rgba(255,255,255,.08);color:var(--text)">'+(t[4]?'<button class="chip" data-x="rsp" data-k="'+esc(k)+'" aria-label="Remove photo">&#10005;</button>':'<label class="chip">Photo<input type="file" accept="image/*" data-x="usp" data-k="'+esc(k)+'" hidden></label>')+'</div></div>'}).join('')}).join('');
- return '<button class="back" data-x="done">&#8592; Done</button><h2>Hairstyles</h2><div class="body"><p class="sub">Starting prices and photos customers see. Styles without a photo keep the drawing.</p>'+rows+'</div><div class="foot"><button class="cta" data-x="pub"'+(dirty?'':' disabled')+'>Save changes</button><p class="amsg" id="amsg"></p></div>'}
-function openBk(){A.v='bk';var hd='<button class="back" data-x="done">&#8592; Done</button><h2>Bookings</h2>';admin.innerHTML=hd+'<p class="sub">Loadingâ€¦</p>';
- sb.from('bookings').select('id,slot_date,slot_time,style,gender,est_price,status,salons(name),profiles(full_name,email)').order('slot_date',{ascending:true}).then(function(r){
-  if(A.v!='bk')return;var rows=(r.data||[]).map(function(b){return '<div class="arow"><div><b>'+esc(b.slot_date)+' '+esc(b.slot_time)+'</b><br><small>'+esc(b.style)+' ('+esc(b.gender)+') Â· '+esc(b.salons&&b.salons.name)+' Â· '+esc(b.profiles&&(b.profiles.full_name||b.profiles.email))+' '+esc(b.profiles&&b.profiles.email)+' Â· '+esc(b.status)+'</small></div><div class="row2"><button class="chip" data-x="bs" data-id="'+esc(b.id)+'" data-s="confirmed">Confirm</button><button class="chip" data-x="bs" data-id="'+esc(b.id)+'" data-s="cancelled">Cancel</button></div></div>'}).join('');
-  admin.innerHTML=hd+'<div class="body">'+(rows||'<p class="sub">No booking requests yet.</p>')+'</div>'})}
-function saveLive(b){amsg('Savingâ€¦');b.disabled=true;
- var rows=SAL.map(function(a){return {id:a.id,name:a.name,area:a.area,address:a.address,status:a.status,price_level:a.f,hue:Math.round(a.h)||300,services:a.services,photos:a.photos,contact_on:!!a.contactOn,booking_on:!!a.bookingOn,verified:!!a.verified,verified_on:a.verifiedOn||null}});
- var cons=SAL.map(function(a){return {salon_id:a.id,phone:a.phone,email:a.email}});
- var ovs=Object.keys(OV).map(function(k){return {key:k,photo_url:OV[k].photo_url||null,price:OV[k].price==null?null:OV[k].price}});
- var ck=function(r){if(r&&r.error)throw r.error;return r};
- Promise.resolve(DEL.length?sb.from('salons').delete().in('id',DEL):null).then(ck).then(function(){return sb.from('salons').upsert(rows)}).then(ck).then(function(){return sb.from('salon_contacts').upsert(cons)}).then(ck).then(function(){return ovs.length?sb.from('style_overrides').upsert(ovs):null}).then(ck)
- .then(function(){dirty=false;DEL=[];b.disabled=true;amsg('Saved. Customers see this now.')}).catch(function(e){b.disabled=false;amsg('Could not save: '+((e&&e.message)||'error'))})}
-function bookLive(){var m=document.getElementById('bmsg');m.hidden=true;
- if(!USR){PEND=true;aview('login');document.getElementById('astate').innerHTML='<p class="demo">Log in or create an account to request this booking.</p>';return}
- var btn=document.querySelector('[data-a=done]');btn.disabled=true;
- sb.from('bookings').insert({salon_id:S.salon.id,gender:S.g,style:S.style[0],slot_date:S.iso,slot_time:S.time,est_price:price()}).select('id').single().then(function(r){btn.disabled=false;
-  if(r.error||!r.data){m.textContent='Could not send your request. '+((r.error&&r.error.message)||'Try again.');m.hidden=false;return}
-  S.ref=String(r.data.id).slice(0,8).toUpperCase();go('done')})}
-function uiUser(){var ac=document.getElementById('acct'),ah=document.querySelector('#home .auth');ac.hidden=!USR;ah.hidden=!!USR;if(USR)ac.innerHTML='Signed in as '+esc(USR.name||USR.email)+' Â· <button class="link" id="lo" type="button">Log out</button>';document.getElementById('adminbtn').hidden=!(USR&&USR.role=='admin')}
-function setUser(sess){if(!sess){USR=null;uiUser();return}var u=sess.user;sb.from('profiles').select('full_name,role').eq('id',u.id).maybeSingle().then(function(r){USR={id:u.id,email:u.email,name:(r.data&&r.data.full_name)||'',role:(r.data&&r.data.role)||'customer'};uiUser()})}
-if(LIVE){
- sb=supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY);SAL.splice(0);
- document.querySelector('#home .fine').textContent='Booking requests are confirmed by the salon. No payment is taken.';
- document.getElementById('home').addEventListener('click',function(e){if(e.target.id=='lo')sb.auth.signOut()});
- AUTH.signUp=function(v){return sb.auth.signUp({email:v.email,password:v.password,options:{data:{full_name:v.name},emailRedirectTo:location.origin+location.pathname}}).then(function(r){if(r.error)return {ok:false,error:r.error.message};var u=r.data.user;if(u&&u.identities&&u.identities.length===0)return {ok:false,error:'An account with this email already exists. Log in instead.'};return {ok:true,confirm:!r.data.session}})};
- AUTH.signIn=function(v){return sb.auth.signInWithPassword({email:v.email,password:v.password}).then(function(r){return r.error?{ok:false,error:/confirm/i.test(r.error.message)?'Confirm your email first, then log in.':'Email or password is incorrect.'}:{ok:true}})};
- AUTH.resetPassword=function(v){return sb.auth.resetPasswordForEmail(v.email,{redirectTo:location.origin+location.pathname}).then(function(r){return r.error?{ok:false,error:r.error.message}:{ok:true}})};
- AUTH.updatePassword=function(v){return sb.auth.updateUser({password:v.password}).then(function(r){return r.error?{ok:false,error:r.error.message}:{ok:true}})};
- sb.auth.onAuthStateChange(function(ev,sess){setTimeout(function(){setUser(sess);if(ev=='PASSWORD_RECOVERY')showReset()},0)});
- Promise.all([sb.from('salons').select('*').order('name'),sb.from('salon_contacts').select('*'),sb.from('style_overrides').select('*')]).then(function(x){
-  var cm={};(x[1].data||[]).forEach(function(c){cm[c.salon_id]=c});
-  var list=(x[0].data||[]).map(function(r){var c=cm[r.id]||{};return {id:r.id,name:r.name,area:r.area,address:r.address,phone:c.phone||'',email:c.email||'',status:r.status,f:+r.price_level||1,h:r.hue||300,services:r.services||[],photos:r.photos||[],contactOn:r.contact_on,bookingOn:r.booking_on,verified:r.verified,verifiedOn:r.verified_on||''}});
-  SAL.splice.apply(SAL,[0,SAL.length].concat(list));OV={};(x[2].data||[]).forEach(function(o){OV[o.key]=o});applyOV()}).catch(function(){})
-}else if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY){document.querySelector('#home .fine').textContent='Could not load the Hairbook service. Showing demo data only.'}
+  return '<div class="scard"><div class="ban" style="--h:'+(+a.h||300)+'">'+(a.photos[0]?'<img class="phimg" alt="" src="'+esc(a.photos[0])+'">':'')+'<b>'+esc(a.name.charAt(0))+'</b><span>'+esc(a.status)+(a.photos[0]?'':' · placeholder image')+'</span></div><div class="sc"><h3>'+esc(a.name)+'</h3><p class="loc">📍 '+esc(loc(a))+'</p>'+(a.verified?'':'<p class="loc">Details not yet verified.</p>')+cbtn(a)+'<div class="tags">'+a.services.map(function(x){return '<span>'+esc(x.n)+' R'+esc(x.p)+'</span>'}).join('')+'</div><p class="from">'+esc(S.style[0])+' about '+R(prc(a))+'</p>'+(LIVE&&!a.bookingOn?'<button class="cta" disabled>Booking not open yet</button>':'<button class="cta" data-a="salon" data-i="'+i+'">Select salon</button>')+'</div></div>'}).join(''):'<p class="sub">No salons added yet.</p>')+'</div>'}https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js
