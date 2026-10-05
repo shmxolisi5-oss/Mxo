@@ -1,2 +1,48 @@
- <script> const supabase = createClient('[https://roovutiqligfryaqituo.supabase.co](https://roovutiqligfryaqituo.supabase.co)', 'sb_publishable_r-b4-kzuIuKA5xYGyprXhg_RzNCRRda') </script>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hairbook</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #faf7f5; }
+    h1 { color: #7b2d5b; }
+    .card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    .row { display: flex; justify-content: space-between; padding: 6px 0; }
+  </style>
+</head>
+<body>
+  <h1>Hairbook</h1>
+  <div id="app">Loading...</div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const { createClient } = supabase;
+    const db = createClient(
+      'https://roovutiqligfryaqituo.supabase.co',
+      'sb_publishable_r-b4-kzuIuKA5xYGyprXhg_RzNCRRda'
+    );
+
+    async function load() {
+      const app = document.getElementById('app');
+      const salons = await db.from('salons').select('*');
+      const services = await db.from('services').select('*');
+
+      if (salons.error || services.error) {
+        app.textContent = 'Error: ' + (salons.error || services.error).message;
+        return;
+      }
+
+      app.innerHTML = salons.data.map(s => `
+        <div class="card">
+          <h2>${s.name || 'Salon'}</h2>
+          ${services.data.filter(v => v.salon_id === s.id).map(v => `
+            <div class="row"><span>${v.name}</span><strong>R${v.price}</strong></div>
+          `).join('')}
+        </div>
+      `).join('') || 'No salons yet.';
+    }
+    load();
+  </script>
+</body>
+</html>
